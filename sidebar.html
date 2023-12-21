@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <div>
+      <input type="text" id="prompt" placeholder="Prompt">
+      <button onclick="submitData()">Submit</button>
+    </div>
+    <script>
+      function submitData() {
+        var promptValue = document.getElementById('prompt').value;
+        google.script.run.processData(promptValue);
+      }
+    </script>
+  </body>
+</html>
