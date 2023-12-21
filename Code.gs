@@ -15,7 +15,9 @@ function generate_image_from_prompt() {
 }
 
 function processData(promptValue) {
-  generateImage(promptValue);
+  var imageBlob = generateImage(promptValue);
+  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+  var image = currentSlide.insertImage(imageBlob);
 }
 
 function generate_image_from_slide() {
@@ -25,8 +27,9 @@ function generate_image_from_slide() {
   if (response.getSelectedButton() == ui.Button.OK) {
     var slideIndex = Number(response.getResponseText()) - 1;
     var promptFromSlide = extractTextFromSlide(slideIndex);
-    // generateImage("A cartoon image of a smiling bee.");
-    generateImage(promptFromSlide);
+    var imageBlob = generateImage(promptFromSlide);
+    var outputSlide = SlidesApp.getActivePresentation().getSlides()[slideIndex];
+    var image = outputSlide.insertImage(imageBlob);
   }
 }
 
@@ -51,9 +54,7 @@ function extractTextFromSlide(slideIndex) {
 }
 
 function generateImage(prompt) {
-  var presentation = SlidesApp.getActivePresentation();
-  var slide = presentation.getSlides()[0];
-  var url = "https://api.stability.ai/v1/generation/stable-diffusion-v1-6/text-to-image";
+  var url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
   var payload = JSON.stringify({
     text_prompts: [
       {
@@ -72,7 +73,7 @@ function generateImage(prompt) {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer sk-QHZZS5CEQpWWG7q6o0xQrHLsIo2hSkDcXnTtLI1fhRU2PXPI',
+      'Authorization': 'Bearer ${api-key}',
     },
     payload: payload
   };
@@ -81,6 +82,6 @@ function generateImage(prompt) {
   var data = JSON.parse(response.getContentText());
   Logger.log(data.artifacts[0].seed);
   Logger.log(data.artifacts[0].finishReason);
-  var imageBlob = Utilities.newBlob(Utilities.base64Decode(data.artifacts[0].base64), 'image/png', 'sample')
-  var image = slide.insertImage(imageBlob);
+  var imageBlob = Utilities.newBlob(Utilities.base64Decode(data.artifacts[0].base64), 'image/png', 'sample');
+  return imageBlob;
 }
