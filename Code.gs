@@ -1,43 +1,60 @@
 function onOpen() {
   var ui = SlidesApp.getUi();
   ui.createMenu('BeeFusion')
-      .addItem('Generate an Image from a Prompt', 'generate_image_from_prompt')
-      .addItem('Generate an Image from the Slide', 'generate_image_from_slide')
+      .addSubMenu(ui.createMenu('Generate an Image from a Prompt')
+        .addItem('Style: None', 'generate_image_from_prompt_no_style')
+        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_prompt_gpt4_enhanced'))
+      .addSubMenu(ui.createMenu('Generate an Image from Slide')
+        .addItem('Style: None', 'generate_image_from_slide_no_style')
+        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_slide_gpt4_enhanced'))
       .addToUi();
 }
 
-function generate_image_from_prompt() {
-  var html = HtmlService.createHtmlOutputFromFile('sidebar')
-    .setTitle('My Custom Sidebar')
-    .setWidth(300);
-  let ui = SlidesApp.getUi();
-  ui.showSidebar(html);
-}
+// -----------------------------Generate Image From a Prompt-----------------------------
 
-function processData(promptValue) {
-  var imageBlob = generateImage(promptValue);
-  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
-  var image = currentSlide.insertImage(imageBlob);
-}
-
-function generate_image_from_slide() {
+function generate_image_from_prompt_no_style() {
   var ui = SlidesApp.getUi();
-  var response = ui.prompt('Enter the slide number that you’d like to generate the image for', ui.ButtonSet.OK_CANCEL);
-  // Process the user's response
+  var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
   if (response.getSelectedButton() == ui.Button.OK) {
-    var slideIndex = Number(response.getResponseText()) - 1;
-    var promptFromSlide = extractTextFromSlide(slideIndex);
-    var imageBlob = generateImage(promptFromSlide);
-    var outputSlide = SlidesApp.getActivePresentation().getSlides()[slideIndex];
-    var image = outputSlide.insertImage(imageBlob);
+    var prompt = response.getResponseText();
+    var imageBlob = generateImage(prompt);
+    var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+    var image = currentSlide.insertImage(imageBlob);
   }
 }
 
-function extractTextFromSlide(slideIndex) {
-  var presentation = SlidesApp.getActivePresentation();
-  var slides = presentation.getSlides();
-  
-  var slide = slides[slideIndex];
+function generate_image_from_prompt_gpt4_enhanced() {
+  var ui = SlidesApp.getUi();
+  var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
+  if (response.getSelectedButton() == ui.Button.OK) {
+    var prompt = response.getResponseText();
+    var enhancedPrompt = upsamplePrompt(prompt);
+    var imageBlob = generateImage(enhancedPrompt);
+    var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+    var image = currentSlide.insertImage(imageBlob);
+  }
+}
+
+// -----------------------------Generate Image From a Slide-----------------------------
+
+function generate_image_from_slide_no_style() {
+  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+  var promptFromSlide = extractTextFromSlide(currentSlide);
+  var imageBlob = generateImage(promptFromSlide);
+  var image = currentSlide.insertImage(imageBlob);
+}
+
+function generate_image_from_slide_gpt4_enhanced() {
+  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+  var promptFromSlide = extractTextFromSlide(currentSlide);
+  var enhancedPromptFromSlide = upsamplePrompt(promptFromSlide);
+  var imageBlob = generateImage(enhancedPromptFromSlide);
+  var image = currentSlide.insertImage(imageBlob);
+}
+
+// -------------------------------------------Utils-------------------------------------------
+
+function extractTextFromSlide(slide) {
   var textElements = slide.getPageElements().filter(function(element) {
     return element.getPageElementType() === SlidesApp.PageElementType.SHAPE;
   });
@@ -52,6 +69,8 @@ function extractTextFromSlide(slideIndex) {
 
   return allText;
 }
+
+// ---------------------------------------Upsample Prompt---------------------------------------
 
 function upsamplePrompt(prompt) {
   var url = "https://api.openai.com/v1/chat/completions";
@@ -116,13 +135,14 @@ function upsamplePrompt(prompt) {
   return data.choices[0].message.content;
 }
 
+// ---------------------------------------Generate Image---------------------------------------
+
 function generateImage(prompt) {
-  prompt = upsamplePrompt(prompt)
   var url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
   var payload = JSON.stringify({
     text_prompts: [
       {
-        text: prompt,
+        text: prompt, weight: 1.0,
       },
     ],
     cfg_scale: 7,
