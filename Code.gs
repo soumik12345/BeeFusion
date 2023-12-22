@@ -3,10 +3,12 @@ function onOpen() {
   ui.createMenu('BeeFusion')
       .addSubMenu(ui.createMenu('Generate an Image from a Prompt')
         .addItem('Style: None', 'generate_image_from_prompt_no_style')
-        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_prompt_gpt4_enhanced'))
+        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_prompt_gpt4_enhanced')
+        .addItem('Style: Default Sharp', 'generate_image_from_prompt_default_sharp'))
       .addSubMenu(ui.createMenu('Generate an Image from Slide')
         .addItem('Style: None', 'generate_image_from_slide_no_style')
-        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_slide_gpt4_enhanced'))
+        .addItem('Style: GPT-4 Enhanced', 'generate_image_from_slide_gpt4_enhanced')
+        .addItem('Style: Default Sharp', 'generate_image_from_slide_default_sharp'))
       .addToUi();
 }
 
@@ -17,7 +19,12 @@ function generate_image_from_prompt_no_style() {
   var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
   if (response.getSelectedButton() == ui.Button.OK) {
     var prompt = response.getResponseText();
-    var imageBlob = generateImage(prompt);
+    var text_prompts = [
+      {
+        text: prompt, weight: 1.0,
+      },
+    ]
+    var imageBlob = generateImage(text_prompts);
     var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
     var image = currentSlide.insertImage(imageBlob);
   }
@@ -29,7 +36,31 @@ function generate_image_from_prompt_gpt4_enhanced() {
   if (response.getSelectedButton() == ui.Button.OK) {
     var prompt = response.getResponseText();
     var enhancedPrompt = upsamplePrompt(prompt);
-    var imageBlob = generateImage(enhancedPrompt);
+    var text_prompts = [
+      {
+        text: enhancedPrompt, weight: 1.0,
+      },
+    ]
+    var imageBlob = generateImage(text_prompts);
+    var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+    var image = currentSlide.insertImage(imageBlob);
+  }
+}
+
+function generate_image_from_prompt_default_sharp() {
+  var ui = SlidesApp.getUi();
+  var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
+  if (response.getSelectedButton() == ui.Button.OK) {
+    var prompt = response.getResponseText();
+    var text_prompts = [
+      {
+        text: "cinematic still " + prompt + " . emotional, harmonious, vignette, 4k epic detailed, shot on kodak, 35mm photo, sharp focus, high budget, cinemascope, moody, epic, gorgeous, film grain, grainy", weight: 1.0,
+      },
+      {
+        text: "anime, cartoon, graphic, (blur, blurry, bokeh), text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured", weight: -1.0,
+      },
+    ]
+    var imageBlob = generateImage(text_prompts);
     var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
     var image = currentSlide.insertImage(imageBlob);
   }
@@ -40,7 +71,12 @@ function generate_image_from_prompt_gpt4_enhanced() {
 function generate_image_from_slide_no_style() {
   var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
   var promptFromSlide = extractTextFromSlide(currentSlide);
-  var imageBlob = generateImage(promptFromSlide);
+  var text_prompts = [
+    {
+      text: promptFromSlide, weight: 1.0,
+    },
+  ]
+  var imageBlob = generateImage(text_prompts);
   var image = currentSlide.insertImage(imageBlob);
 }
 
@@ -48,7 +84,27 @@ function generate_image_from_slide_gpt4_enhanced() {
   var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
   var promptFromSlide = extractTextFromSlide(currentSlide);
   var enhancedPromptFromSlide = upsamplePrompt(promptFromSlide);
-  var imageBlob = generateImage(enhancedPromptFromSlide);
+  var text_prompts = [
+    {
+      text: enhancedPromptFromSlide, weight: 1.0,
+    },
+  ]
+  var imageBlob = generateImage(text_prompts);
+  var image = currentSlide.insertImage(imageBlob);
+}
+
+function generate_image_from_slide_default_sharp() {
+  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+  var promptFromSlide = extractTextFromSlide(currentSlide);
+  var text_prompts = [
+    {
+      text: "cinematic still " + promptFromSlide + " . emotional, harmonious, vignette, 4k epic detailed, shot on kodak, 35mm photo, sharp focus, high budget, cinemascope, moody, epic, gorgeous, film grain, grainy", weight: 1.0,
+    },
+    {
+      text: "anime, cartoon, graphic, (blur, blurry, bokeh), text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured", weight: -1.0,
+    },
+  ];
+  var imageBlob = generateImage(text_prompts);
   var image = currentSlide.insertImage(imageBlob);
 }
 
