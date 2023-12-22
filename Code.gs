@@ -193,14 +193,10 @@ function upsamplePrompt(prompt) {
 
 // ---------------------------------------Generate Image---------------------------------------
 
-function generateImage(prompt) {
+function generateImage(text_prompts) {
   var url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
   var payload = JSON.stringify({
-    text_prompts: [
-      {
-        text: prompt, weight: 1.0,
-      },
-    ],
+    text_prompts: text_prompts,
     cfg_scale: 7,
     height: 1024,
     width: 1024,
