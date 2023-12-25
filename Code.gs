@@ -139,7 +139,7 @@ function upsamplePrompt(prompt) {
       - Sometimes the user will request that you modify previous captions. In this case, you should refer to your previous conversations with the user and make the modifications requested.
       - When modifications are requested, you should not simply make the description longer. You should refactor the entire description to integrate the suggestions.
       - Other times the user will not want modifications, but instead want a new image. In this case, you should ignore your previous conversation with the user."
-      - Image descriptions must be between 15-77 words. Extra words will be ignored.
+      - Image descriptions must be between 15-50 words. Extra words will be ignored.
       `,
     },
     {
@@ -181,7 +181,7 @@ function upsamplePrompt(prompt) {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer {openai-api}',
+      'Authorization': 'Bearer ' + PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY'),
     },
     payload: payload
   };
@@ -209,8 +209,9 @@ function generateImage(text_prompts) {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer {stability-api}',
+      'Authorization': 'Bearer ' + PropertiesService.getScriptProperties().getProperty('STABILITY_API_KEY'),
     },
+    //sk-QHZZS5CEQpWWG7q6o0xQrHLsIo2hSkDcXnTtLI1fhRU2PXPI
     payload: payload
   };
 
