@@ -1,48 +1,59 @@
 function onOpen() {
   var ui = SlidesApp.getUi();
   ui.createMenu('BeeFusion')
-      .addSubMenu(ui.createMenu('Generate Image')
-        .addItem('Generate from Prompt', 'generate_image_from_prompt')
-        .addItem('Generate from Slide', 'generate_image_from_slide'))
-      .addItem('Verify text from WandBot', 'get_verification_from_wandbot')
+      .addItem('Generate Image', 'generate_image')
+      .addItem('Verify text from WandBot', 'ask_wandbot')
       .addToUi();
 }
 
-// -----------------------------Generate Image From a Prompt-----------------------------
+// -----------------------------------Generate Image-----------------------------------
 
-function generate_image_from_prompt() {
+function generate_image() {
+  const selection = SlidesApp.getActivePresentation().getSelection();
+  const selectionType = selection.getSelectionType();
   var ui = SlidesApp.getUi();
-  var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
-  if (response.getSelectedButton() == ui.Button.OK) {
-    var prompt = response.getResponseText();
-    var imageBlob = generateImage(prompt);
-    var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
+  if (selectionType == SlidesApp.SelectionType.PAGE) {
+    var currentSlide = selection.getCurrentPage();
+    var selectedText = extractTextFromSlide(currentSlide);
+    ui.alert(selectedText);
+    var imageBlob = generateImage(selectedText);
     var image = currentSlide.insertImage(imageBlob);
   }
-}
-
-// -----------------------------Generate Image From a Slide-----------------------------
-
-function generate_image_from_slide() {
-  var currentSlide = SlidesApp.getActivePresentation().getSelection().getCurrentPage();
-  var promptFromSlide = extractTextFromSlide(currentSlide);
-  var imageBlob = generateImage(promptFromSlide);
-  var image = currentSlide.insertImage(imageBlob);
+  else if (selectionType == SlidesApp.SelectionType.TEXT) {
+    var currentSlide = selection.getCurrentPage();
+    var selectedText = selection.getTextRange().asString();
+    ui.alert(selectedText);
+    var imageBlob = generateImage(selectedText);
+    var image = currentSlide.insertImage(imageBlob);
+  }
+  else {
+    var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
+    if (response.getSelectedButton() == ui.Button.OK) {
+      var prompt = response.getResponseText();
+      ui.alert(prompt);
+      var imageBlob = generateImage(prompt);
+      var currentSlide = selection.getCurrentPage();
+      var image = currentSlide.insertImage(imageBlob);
+    }
+  }
 }
 
 // -----------------------------------Verify from WandbBot------------------------------------
 
-function get_verification_from_wandbot() {
+function ask_wandbot() {
   const selection = SlidesApp.getActivePresentation().getSelection();
   const selectionType = selection.getSelectionType();
   var ui = SlidesApp.getUi();
 
   if (selectionType == SlidesApp.SelectionType.PAGE) {
     var currentSlide = selection.getCurrentPage();
-    var promptFromSlide = extractTextFromSlide(currentSlide);
-    ui.alert(promptFromSlide);
+    var selectedText = extractTextFromSlide(currentSlide);
+    ui.alert(selectedText);
   }
-  else {
+  else if (selectionType == SlidesApp.SelectionType.TEXT) {
+    var selectedText = selection.getTextRange().asString();
+  }
+  else if (selectionType == SlidesApp.SelectionType.NONE) {
     ui.alert("Nothing is Selected");
   }
 }
@@ -94,18 +105,20 @@ function generateImage(text_prompt) {
     size: "1024x1024"
   });
 
+  var openai_api_key = PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY')
   var options = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer ' + PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY'),
+      'Authorization': 'Bearer ' + openai_api_key,
     },
     payload: payload
   };
 
   var response = UrlFetchApp.fetch(url, options);
   var data = JSON.parse(response.getContentText());
-  var imageBlob = Utilities.newBlob(Utilities.base64Decode(imageToBase64(data.data[0].url)), 'image/png', 'sample');
+  var decoded_image = Utilities.base64Decode(imageToBase64(data.data[0].url))
+  var imageBlob = Utilities.newBlob(decoded_image, 'image/png', 'sample');
   return imageBlob;
 }
