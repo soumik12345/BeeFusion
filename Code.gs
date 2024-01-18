@@ -93,7 +93,6 @@ function ask_wandbot_to_verify_text() {
   if (selectionType == SlidesApp.SelectionType.PAGE) {
     var currentSlide = selection.getCurrentPage();
     var selectedText = extractTextFromSlide(currentSlide);
-    ui.alert("Prompt: " + selectedText);
     var wandbot_response = get_verification_from_wandbot(selectedText);
     if (wandbot_response.startsWith("Yes")) {
       ui.alert("The information is correct");
@@ -104,7 +103,6 @@ function ask_wandbot_to_verify_text() {
   }
   else if (selectionType == SlidesApp.SelectionType.TEXT) {
     var selectedText = selection.getTextRange().asString();
-    ui.alert("Prompt: " + selectedText);
     var wandbot_response = get_verification_from_wandbot(selectedText);
     if (wandbot_response.startsWith("Yes")) {
       ui.alert("The information is correct");
@@ -115,8 +113,7 @@ function ask_wandbot_to_verify_text() {
   }
   else if (selectionType == SlidesApp.SelectionType.PAGE_ELEMENT) {
     var pageElement = selection.getPageElementRange().getPageElements();
-    var selectedText = pageElement[0].asShape().getText().asString()
-    ui.alert("Prompt: " + selectedText);
+    var selectedText = pageElement[0].asShape().getText().asString();
     var wandbot_response = get_verification_from_wandbot(selectedText);
     if (wandbot_response.startsWith("Yes")) {
       ui.alert("The information is correct");
@@ -141,15 +138,16 @@ function ask_wandbot_to_correct_text() {
     var pageElement = selection.getPageElementRange().getPageElements();
     var selectedTextRange = pageElement[0].asShape().getText();
     var selectedText = selectedTextRange.asString()
-    ui.alert("Prompt: " + selectedText);
     var wandbot_response = get_correction_from_wandbot(selectedText);
     if (wandbot_response.startsWith("Yes")) {
       ui.alert("The information is correct");
     }
     else {
       var correct_alternative = wandbot_response.split("A correct alternative could be:")[1];
+      correct_alternative = correct_alternative.replace("\"", "");
+      correct_alternative = correct_alternative.replace("\"", "");
       selectedTextRange.setText(correct_alternative);
-      ui.alert(correct_alternative);
+      // ui.alert(correct_alternative);
     }
   }
   else {
@@ -172,8 +170,6 @@ function get_correction_from_wandbot(text) {
 // ---------------------------------------Generate Image---------------------------------------
 
 function generateImage(text_prompt) {
-  // var ui = SlidesApp.getUi();
-  // ui.alert(text_prompt);
   var data = send_payload_to_openai(
     JSON.stringify({
       model: "dall-e-3",
@@ -194,20 +190,17 @@ function generate_image() {
   var currentSlide = selection.getCurrentPage();
   if (selectionType == SlidesApp.SelectionType.PAGE) {
     var selectedText = extractTextFromSlide(currentSlide);
-    ui.alert("Prompt: " + selectedText);
     var imageBlob = generateImage(selectedText);
     var image = currentSlide.insertImage(imageBlob);
   }
   else if (selectionType == SlidesApp.SelectionType.TEXT) {
     var selectedText = selection.getTextRange().asString();
-    ui.alert("Prompt: " + selectedText);
     var imageBlob = generateImage(selectedText);
     var image = currentSlide.insertImage(imageBlob);
   }
   else if (selectionType == SlidesApp.SelectionType.PAGE_ELEMENT) {
     var pageElement = selection.getPageElementRange().getPageElements();
     var selectedText = pageElement[0].asShape().getText().asString();
-    ui.alert("Prompt: " + selectedText);
     var imageBlob = generateImage(selectedText);
     var image = currentSlide.insertImage(imageBlob);
   }
@@ -215,7 +208,6 @@ function generate_image() {
     var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
     if (response.getSelectedButton() == ui.Button.OK) {
       var prompt = response.getResponseText();
-      ui.alert("Prompt: " + prompt);
       var imageBlob = generateImage(prompt);
       var currentSlide = selection.getCurrentPage();
       var image = currentSlide.insertImage(imageBlob);
