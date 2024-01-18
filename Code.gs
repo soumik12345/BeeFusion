@@ -2,7 +2,8 @@ function onOpen() {
   var ui = SlidesApp.getUi();
   ui.createMenu('BeeFusion')
       .addItem('Generate Image', 'generate_image')
-      .addItem('WandBot: Verify', 'ask_wandbot')
+      .addItem('WandBot: Verify', 'ask_wandbot_to_verify_text')
+      .addItem('WandBot: Correct', 'ask_wandbot_to_correct_text')
       .addToUi();
 }
 
@@ -70,48 +71,21 @@ function send_payload_to_openai(payload) {
   return JSON.parse(response.getContentText());
 }
 
-
-// -----------------------------------Generate Image-----------------------------------
-
-function generate_image() {
-  const selection = SlidesApp.getActivePresentation().getSelection();
-  const selectionType = selection.getSelectionType();
-  var ui = SlidesApp.getUi();
-  var currentSlide = selection.getCurrentPage();
-  if (selectionType == SlidesApp.SelectionType.PAGE) {
-    var selectedText = extractTextFromSlide(currentSlide);
-    ui.alert("Prompt: " + selectedText);
-    var imageBlob = generateImage(selectedText);
-    var image = currentSlide.insertImage(imageBlob);
-  }
-  else if (selectionType == SlidesApp.SelectionType.TEXT) {
-    var selectedText = selection.getTextRange().asString();
-    ui.alert("Prompt: " + selectedText);
-    var imageBlob = generateImage(selectedText);
-    var image = currentSlide.insertImage(imageBlob);
-  }
-  else if (selectionType == SlidesApp.SelectionType.PAGE_ELEMENT) {
-    var pageElement = selection.getPageElementRange().getPageElements();
-    var selectedText = pageElement[0].asShape().getText().asString();
-    ui.alert("Prompt: " + selectedText);
-    var imageBlob = generateImage(selectedText);
-    var image = currentSlide.insertImage(imageBlob);
-  }
-  else {
-    var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
-    if (response.getSelectedButton() == ui.Button.OK) {
-      var prompt = response.getResponseText();
-      ui.alert("Prompt: " + prompt);
-      var imageBlob = generateImage(prompt);
-      var currentSlide = selection.getCurrentPage();
-      var image = currentSlide.insertImage(imageBlob);
-    }
-  }
-}
-
 // -----------------------------------Verify from WandbBot------------------------------------
 
-function ask_wandbot() {
+function get_verification_from_wandbot(text) {
+  var question = "Someone told me that \"" + text + "\". Is that true? Please start the answer with a \"Yes\" or \"No\".";
+  var data = send_payload_to_wandbot(
+    JSON.stringify({
+      question: question,
+      "application": "BeeFusion",
+      "language": "en"
+    })
+  );
+  return data.answer;
+}
+
+function ask_wandbot_to_verify_text() {
   const selection = SlidesApp.getActivePresentation().getSelection();
   const selectionType = selection.getSelectionType();
   var ui = SlidesApp.getUi();
@@ -156,9 +130,35 @@ function ask_wandbot() {
   }
 }
 
+// -----------------------------------Correct from WandbBot------------------------------------
 
-function get_verification_from_wandbot(text) {
-  var question = "Someone told me that \"" + text + "\". Is that true? Please start the answer with a \"Yes\" or \"No\".";
+function ask_wandbot_to_correct_text() {
+  const selection = SlidesApp.getActivePresentation().getSelection();
+  const selectionType = selection.getSelectionType();
+  var ui = SlidesApp.getUi();
+
+  if (selectionType == SlidesApp.SelectionType.PAGE_ELEMENT) {
+    var pageElement = selection.getPageElementRange().getPageElements();
+    var selectedTextRange = pageElement[0].asShape().getText();
+    var selectedText = selectedTextRange.asString()
+    ui.alert("Prompt: " + selectedText);
+    var wandbot_response = get_correction_from_wandbot(selectedText);
+    if (wandbot_response.startsWith("Yes")) {
+      ui.alert("The information is correct");
+    }
+    else {
+      var correct_alternative = wandbot_response.split("A correct alternative could be:")[1];
+      selectedTextRange.setText(correct_alternative);
+      ui.alert(correct_alternative);
+    }
+  }
+  else {
+    ui.alert("Nothing is Selected");
+  }
+}
+
+function get_correction_from_wandbot(text) {
+  var question = "Original statement: \"" + text + "\"Is the original statement true? Please start the answer with a \"Yes\" or \"No\". What should be the correct alternative to the original statement? Please ensure that the length of the response doesn't exceed that of the original statement by more than 20% starting by the phrase \"A correct alternative could be: \"";
   var data = send_payload_to_wandbot(
     JSON.stringify({
       question: question,
@@ -185,4 +185,40 @@ function generateImage(text_prompt) {
   var decoded_image = Utilities.base64Decode(imageToBase64(data.data[0].url))
   var imageBlob = Utilities.newBlob(decoded_image, 'image/png', 'sample');
   return imageBlob;
+}
+
+function generate_image() {
+  const selection = SlidesApp.getActivePresentation().getSelection();
+  const selectionType = selection.getSelectionType();
+  var ui = SlidesApp.getUi();
+  var currentSlide = selection.getCurrentPage();
+  if (selectionType == SlidesApp.SelectionType.PAGE) {
+    var selectedText = extractTextFromSlide(currentSlide);
+    ui.alert("Prompt: " + selectedText);
+    var imageBlob = generateImage(selectedText);
+    var image = currentSlide.insertImage(imageBlob);
+  }
+  else if (selectionType == SlidesApp.SelectionType.TEXT) {
+    var selectedText = selection.getTextRange().asString();
+    ui.alert("Prompt: " + selectedText);
+    var imageBlob = generateImage(selectedText);
+    var image = currentSlide.insertImage(imageBlob);
+  }
+  else if (selectionType == SlidesApp.SelectionType.PAGE_ELEMENT) {
+    var pageElement = selection.getPageElementRange().getPageElements();
+    var selectedText = pageElement[0].asShape().getText().asString();
+    ui.alert("Prompt: " + selectedText);
+    var imageBlob = generateImage(selectedText);
+    var image = currentSlide.insertImage(imageBlob);
+  }
+  else {
+    var response = ui.prompt('Enter the Prompt              ', ui.ButtonSet.OK_CANCEL);
+    if (response.getSelectedButton() == ui.Button.OK) {
+      var prompt = response.getResponseText();
+      ui.alert("Prompt: " + prompt);
+      var imageBlob = generateImage(prompt);
+      var currentSlide = selection.getCurrentPage();
+      var image = currentSlide.insertImage(imageBlob);
+    }
+  }
 }
